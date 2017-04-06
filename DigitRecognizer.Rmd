@@ -1,0 +1,53 @@
+---
+title: "Digit Recognizer"
+author: "Athni Vempaty"
+date: "April 3, 2017"
+output: html_document
+---
+
+```{r}
+#loading all the required packages
+library(caret)
+library(kernlab)
+library(randomForest)
+```
+
+Loading data into train and test
+```{r}
+train <- read.csv("train.csv")
+test <- read.csv("test.csv")
+```
+
+Cleaning up the data
+```{r}
+#Removing the outcome column from train
+label <- train[,1]
+train <- train[,-1]
+
+#Removing predictors with near zero variance
+nsv <- nearZeroVar(train, saveMetrics = TRUE)
+train <- train[,!nsv$nzv]
+test <- test[,!nsv$nzv]
+train <- cbind(train, label)
+```
+
+Pre-processing and Model selection
+```{r}
+#We will divide the training data set into 2 subsets- training (data_train) and validation(data_validation)
+inTrain <- createDataPartition(y=train$label, p=.7, list=FALSE)
+data_train <- train[inTrain, ]
+data_validation <- train[-inTrain, ]
+
+ctrl <- trainControl(method="cv", number=3, savePredictions = TRUE)
+modelfit <- randomForest(factor(label)~., data=data_train, ntree=25)
+predictions <- predict(modelfit, data_validation)
+confusionMatrix(predictions, factor(data_validation$label))
+```
+The final prediction
+
+```{r}
+results <- predict(modelfit, test)
+finaloutput <- data.frame(ImageID=1:nrow(test), label=results)
+write.csv(finaloutput, "predictions.csv")
+```
+ 
